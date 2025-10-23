@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* Reset and base styles for Mantine compatibility */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure Mantine components work well with Tailwind */
+.mantine-Paper-root {
+  background: var(--background);
+}
+
+.mantine-Text-root {
+  color: var(--foreground);
+}
+
+.mantine-Input-input {
+  background: var(--background);
+  color: var(--foreground);
+  border-color: hsl(210, 20%, 85%);
+}
+
+.mantine-Input-input:focus {
+  border-color: hsl(210, 100%, 60%);
+}
+
+/* Dark mode adjustments for Mantine */
+@media (prefers-color-scheme: dark) {
+  .mantine-Paper-root {
+    background: var(--background);
+  }
+
+  .mantine-Input-input {
+    background: hsl(220, 15%, 20%);
+    color: var(--foreground);
+    border-color: hsl(210, 15%, 30%);
+  }
+
+  .mantine-Input-input:focus {
+    border-color: hsl(210, 100%, 60%);
+  }
+}
+
+/* Smooth transitions for theme switching */
+.mantine-Transition-root {
+  transition: all 0.3s ease;
+}
+
+/* Scrollbar styling for better appearance */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(210, 20%, 95%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(210, 20%, 80%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(210, 20%, 70%);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: hsl(210, 15%, 15%);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(210, 15%, 30%);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(210, 15%, 40%);
+  }
+}
+
+/* Utility classes for Tailwind compatibility */
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus visible for accessibility */
+.mantine-Button-root:focus-visible,
+.mantine-ActionIcon-root:focus-visible,
+.mantine-TextInput-input:focus-visible {
+  outline: 2px solid hsl(210, 100%, 60%);
+  outline-offset: 2px;
+}
+
+/* Loading states */
+.mantine-Button-loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Ensure proper text rendering */
+.mantine-Text-root {
+  text-rendering: optimizeLegibility;
+}
+
+/* Mobile responsiveness improvements */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  .mantine-Container-root {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .mantine-Paper-root {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+
+  .mantine-Button-root {
+    display: none !important;
+  }
+}
+
+/* Custom gradient backgrounds */
+.gradient-bg {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+}
+
+.dark .gradient-bg {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
