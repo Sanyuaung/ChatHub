@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "dotenv -c .env -- node server.js",
+    "dev": "next dev",
     "build": "next build",
-    "start": "dotenv -c .env.production -- node server.js",
-    "lint": "eslint"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@mantine/carousel": "^8.3.5",
