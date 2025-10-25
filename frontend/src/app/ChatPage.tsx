@@ -259,33 +259,56 @@ export default function ChatPage() {
     return userId ? `User ID: ${userId.substring(0, 12)}...` : "Connecting...";
   };
 
-  // Show modal for name entry if needed
-  if (!userId || showNameModal) {
+  // Show modal for name entry or initializing if not connected
+  if (!userId || !isConnected) {
     return (
-      <>
-        <Box
-          style={{
-            minHeight: "100vh",
-            // background: isDark
-            //   ? `linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[7]} 100%)`
-            //   : `linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)`,
-            color: colors.text,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: rem(16),
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          <Container size={480} style={{ textAlign: "center" }}>
-            <MantineText size="xl" c={colors.text}>
-              Initializing chat...
-            </MantineText>
-          </Container>
-        </Box>
-        <NameModal opened={showNameModal} onSubmit={handleNameSubmit} />
-      </>
+      <Box
+        style={{
+          minHeight: "100vh",
+          color: colors.text,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: rem(16),
+          fontFamily: "Inter, sans-serif",
+        }}
+      >
+        <Container size={480} style={{ textAlign: "center" }}>
+          <MantineText
+            size="xl"
+            style={{
+              color: "#3b82f6",
+              textShadow: "0 0 16px #3b82f6, 0 0 32px #60a5fa",
+              animation: "glowFade 2s infinite",
+              // fontWeight: 700,
+              letterSpacing: "0.04em",
+            }}
+          >
+            Initializing chat...
+            <style jsx>{`
+              @keyframes glowFade {
+                0% {
+                  opacity: 0.6;
+                  text-shadow: 0 0 8px #3b82f6, 0 0 16px #60a5fa;
+                }
+                50% {
+                  opacity: 1;
+                  text-shadow: 0 0 24px #3b82f6, 0 0 48px #60a5fa;
+                }
+                100% {
+                  opacity: 0.6;
+                  text-shadow: 0 0 8px #3b82f6, 0 0 16px #60a5fa;
+                }
+              }
+            `}</style>
+          </MantineText>
+        </Container>
+      </Box>
     );
+  }
+
+  if (showNameModal) {
+    return <NameModal opened={showNameModal} onSubmit={handleNameSubmit} />;
   }
 
   return (
