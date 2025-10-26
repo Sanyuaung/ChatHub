@@ -1,6 +1,4 @@
 "use client";
-const [wakeUpAttempted, setWakeUpAttempted] = useState(false);
-const [wakeUpIframeVisible, setWakeUpIframeVisible] = useState(false);
 
 import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
@@ -30,6 +28,8 @@ import { useRefreshWarning } from "./components/useRefreshWarning";
 let socket: any;
 
 export default function ChatPage() {
+  const [wakeUpAttempted, setWakeUpAttempted] = useState(false);
+  const [wakeUpIframeVisible, setWakeUpIframeVisible] = useState(false);
   useRefreshWarning();
   const [name, setName] = useState("");
   const [showNameModal, setShowNameModal] = useState(false);
