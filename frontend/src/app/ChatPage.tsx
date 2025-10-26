@@ -1,4 +1,6 @@
-"use client";
+const [wakeUpAttempted, setWakeUpAttempted] = useState(false);
+const [wakeUpIframeVisible, setWakeUpIframeVisible] = useState(false);
+("use client");
 
 import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
@@ -121,21 +123,36 @@ export default function ChatPage() {
     if (!userId) return;
     const socketUrl =
       process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000";
-    socket = io(socketUrl, {
-      transports: ["websocket", "polling"],
-      query: {
-        userId: userId,
-        tabId: Math.random().toString(36).substr(2, 9),
-      },
-    });
-    socket.on("connect", () => {
-      setIsConnected(true);
-      console.log("Connected to server");
-    });
-    socket.on("disconnect", () => {
-      setIsConnected(false);
-      console.log("Disconnected from server");
-    });
+    function connectSocket() {
+      socket = io(socketUrl, {
+        transports: ["websocket", "polling"],
+        query: {
+          userId: userId,
+          tabId: Math.random().toString(36).substr(2, 9),
+        },
+      });
+      socket.on("connect", () => {
+        setIsConnected(true);
+        setWakeUpIframeVisible(false);
+        console.log("Connected to server");
+      });
+      socket.on("disconnect", () => {
+        setIsConnected(false);
+        console.log("Disconnected from server");
+      });
+      socket.on("connect_error", () => {
+        if (!wakeUpAttempted) {
+          setWakeUpAttempted(true);
+          setWakeUpIframeVisible(true);
+          // Try to reconnect after 7 seconds
+          setTimeout(() => {
+            setWakeUpIframeVisible(false);
+            connectSocket();
+          }, 7000);
+        }
+      });
+    }
+    connectSocket();
     socket.on(
       "chat",
       (data: {
@@ -280,11 +297,30 @@ export default function ChatPage() {
               color: "#3b82f6",
               textShadow: "0 0 16px #3b82f6, 0 0 32px #60a5fa",
               animation: "glowFade 2s infinite",
-              // fontWeight: 700,
               letterSpacing: "0.04em",
             }}
           >
             Initializing chat...
+            <br />
+            {wakeUpIframeVisible && (
+              <>
+                <span
+                  style={{
+                    fontSize: 16,
+                    color: "#60a5fa",
+                    display: "block",
+                    marginTop: 16,
+                  }}
+                >
+                  Waking up server, please wait...
+                </span>
+                <iframe
+                  src={process.env.NEXT_PUBLIC_SOCKET_URL}
+                  style={{ display: "none" }}
+                  title="WakeUpRender"
+                />
+              </>
+            )}
             <style jsx>{`
               @keyframes glowFade {
                 0% {
