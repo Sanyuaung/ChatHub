@@ -28,6 +28,7 @@ import { useRefreshWarning } from "./components/useRefreshWarning";
 let socket: any;
 
 export default function ChatPage() {
+  const [sending, setSending] = useState(false);
   const [wakeUpAttempted, setWakeUpAttempted] = useState(false);
   const [wakeUpIframeVisible, setWakeUpIframeVisible] = useState(false);
   useRefreshWarning();
@@ -39,6 +40,7 @@ export default function ChatPage() {
     {
       name: string;
       message: string;
+      image?: string;
       id: string;
       timestamp: Date;
       userId: string;
@@ -67,6 +69,21 @@ export default function ChatPage() {
     border: isDark ? theme.colors.dark[4] : theme.colors.gray[3],
     userBubble: isDark ? theme.colors.indigo[8] : theme.colors.indigo[6],
     otherBubble: isDark ? theme.colors.dark[6] : "#f1f5f9",
+  };
+
+  // Send image as base64 string
+  const sendImage = (base64: string) => {
+    if (!name.trim() || !userId) return;
+    setSending(true);
+    const messageData = {
+      name: name.trim(),
+      message: "", // No text
+      image: base64,
+      id: typeof window !== "undefined" ? Date.now().toString() : "",
+      userId: userId,
+      timestamp: typeof window !== "undefined" ? new Date().toISOString() : "",
+    };
+    socket.emit("chat", messageData);
   };
 
   // On mount, check for name and userId in sessionStorage (client only)
@@ -158,6 +175,7 @@ export default function ChatPage() {
       (data: {
         name: string;
         message: string;
+        image?: string;
         id: string;
         userId: string;
         timestamp: string;
@@ -173,6 +191,7 @@ export default function ChatPage() {
         setTyping("");
         if (data.userId === userId) {
           setMessage("");
+          setSending(false);
         }
       }
     );
@@ -221,6 +240,7 @@ export default function ChatPage() {
 
   const sendMessage = () => {
     if (!name.trim() || !message.trim() || !userId) return;
+    setSending(true);
     // Only generate IDs and timestamps on the client
     const messageData = {
       name: name.trim(),
@@ -230,7 +250,6 @@ export default function ChatPage() {
       timestamp: typeof window !== "undefined" ? new Date().toISOString() : "",
     };
     socket.emit("chat", messageData);
-    setMessage("");
   };
 
   const handleTyping = (
@@ -282,6 +301,9 @@ export default function ChatPage() {
       <Box
         style={{
           minHeight: "100vh",
+          background: isDark
+            ? `linear-gradient(135deg, ${theme.colors.dark[8]} 0%, ${theme.colors.dark[7]} 100%)`
+            : `linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)`,
           color: colors.text,
           display: "flex",
           alignItems: "center",
@@ -290,14 +312,15 @@ export default function ChatPage() {
           fontFamily: "Inter, sans-serif",
         }}
       >
-        <Container size={480} style={{ textAlign: "center" }}>
+        <Container size={480} p={0} style={{ width: "100%", maxWidth: 480 }}>
           <MantineText
-            size="xl"
             style={{
-              color: "#3b82f6",
-              textShadow: "0 0 16px #3b82f6, 0 0 32px #60a5fa",
+              fontSize: 22,
+              fontWeight: 700,
+              color: "#60a5fa",
+              textAlign: "center",
+              marginTop: 32,
               animation: "glowFade 2s infinite",
-              letterSpacing: "0.04em",
             }}
           >
             Initializing chat...
@@ -426,12 +449,13 @@ export default function ChatPage() {
               message={message}
               setMessage={setMessage}
               sendMessage={sendMessage}
+              sendImage={sendImage}
               handleTyping={handleTyping}
               isDark={isDark}
               colors={colors}
               theme={theme}
               isConnected={isConnected}
-              onExit={handleExit}
+              sending={sending}
             />
             <ConfirmExitModal
               opened={showExitModal}

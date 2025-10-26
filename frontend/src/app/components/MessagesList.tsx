@@ -12,6 +12,7 @@ import React from "react";
 interface Message {
   name: string;
   message: string;
+  image?: string;
   id: string;
   timestamp: Date;
   userId: string;
@@ -121,12 +122,29 @@ const MessagesList: React.FC<MessagesListProps> = ({
                   borderBottomLeftRadius: msg.userId === userId ? 16 : 4,
                 }}
               >
-                <MantineText
-                  size="sm"
-                  style={{ lineHeight: 1.4, wordBreak: "break-word" }}
-                >
-                  {msg.message}
-                </MantineText>
+                {/* Render image if present */}
+                {msg.image && (
+                  <img
+                    src={msg.image}
+                    alt="chat-img"
+                    style={{
+                      maxWidth: "100%",
+                      maxHeight: 220,
+                      borderRadius: 12,
+                      marginBottom: msg.message ? 8 : 0,
+                      display: "block",
+                    }}
+                  />
+                )}
+                {/* Render text message if present */}
+                {msg.message && (
+                  <MantineText
+                    size="sm"
+                    style={{ lineHeight: 1.4, wordBreak: "break-word" }}
+                  >
+                    {msg.message}
+                  </MantineText>
+                )}
               </Paper>
               <MantineText
                 size="xs"
