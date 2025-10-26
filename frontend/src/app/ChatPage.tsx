@@ -415,9 +415,9 @@ export default function ChatPage() {
             onExit={handleExit}
           />
           {/* Video Call UI */}
-          <Box style={{ margin: "16px 0" }}>
+          {/* <Box style={{ margin: "16px 0" }}>
             <VideoCall signalingSocket={socket} userId={userId} />
-          </Box>
+          </Box> */}
           <ScrollArea
             viewportRef={viewport}
             type="auto"
