@@ -23,6 +23,17 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("typing", name);
   });
 
+  // WebRTC signaling relays
+  socket.on("webrtc-offer", (data) => {
+    socket.broadcast.emit("webrtc-offer", { ...data, from: socket.id });
+  });
+  socket.on("webrtc-answer", (data) => {
+    socket.broadcast.emit("webrtc-answer", { ...data, from: socket.id });
+  });
+  socket.on("webrtc-candidate", (data) => {
+    socket.broadcast.emit("webrtc-candidate", { ...data, from: socket.id });
+  });
+
   socket.on("disconnect", () => {
     // Emit updated user count to all clients
     io.sockets.emit("users", io.engine.clientsCount);

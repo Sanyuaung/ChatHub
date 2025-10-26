@@ -18,6 +18,7 @@ import MessagesList from "./components/MessagesList";
 import MessageInput from "./components/MessageInput";
 import NameModal from "./components/NameModal";
 import ConfirmExitModal from "./components/ConfirmExitModal";
+import VideoCall from "./components/VideoCall";
 import {
   showLogoutNotification,
   showWelcomeNotification,
@@ -413,6 +414,10 @@ export default function ChatPage() {
             name={name}
             onExit={handleExit}
           />
+          {/* Video Call UI */}
+          <Box style={{ margin: "16px 0" }}>
+            <VideoCall signalingSocket={socket} userId={userId} />
+          </Box>
           <ScrollArea
             viewportRef={viewport}
             type="auto"
