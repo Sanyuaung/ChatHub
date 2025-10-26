@@ -1,6 +1,6 @@
+"use client";
 const [wakeUpAttempted, setWakeUpAttempted] = useState(false);
 const [wakeUpIframeVisible, setWakeUpIframeVisible] = useState(false);
-("use client");
 
 import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
