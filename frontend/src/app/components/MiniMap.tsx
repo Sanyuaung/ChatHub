@@ -63,7 +63,12 @@ const MiniMap: React.FC<MiniMapProps> = ({
 
     // Add locations from messages (excluding current user)
     messages.forEach((msg) => {
-      if (msg.lat && msg.lng && msg.userId !== userId && !locationsMap.has(msg.userId)) {
+      if (
+        msg.lat &&
+        msg.lng &&
+        msg.userId !== userId &&
+        !locationsMap.has(msg.userId)
+      ) {
         locationsMap.set(msg.userId, {
           name: msg.name,
           lat: msg.lat,
@@ -168,12 +173,12 @@ const MiniMap: React.FC<MiniMapProps> = ({
   const handleRefreshLocations = () => {
     setIsRefreshing(true);
     const L = require("leaflet");
-    
+
     if (map.current && locations.length > 0) {
       const bounds = L.latLngBounds(locations.map((l) => [l.lat, l.lng]));
       map.current.fitBounds(bounds, { padding: [50, 50] });
     }
-    
+
     // Simulate refresh animation
     setTimeout(() => setIsRefreshing(false), 600);
   };

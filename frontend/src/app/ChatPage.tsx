@@ -11,6 +11,7 @@ import {
   useMantineTheme,
   useMantineColorScheme,
   Text as MantineText,
+  Button,
 } from "@mantine/core";
 
 import ChatHeader from "./components/ChatHeader";
@@ -86,17 +87,18 @@ export default function ChatPage() {
   // Get user's geolocation with continuous tracking
   const getUserLocation = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
-      console.log("Geolocation not available");
+      console.log("❌ Geolocation not available");
       setLocationStatus("denied");
       return;
     }
 
     setLocationStatus("requesting");
+    console.log("🔍 Starting geolocation request...");
 
     // High accuracy options - works for both mobile GPS and web-based geolocation
     const geoOptions: PositionOptions = {
       enableHighAccuracy: true, // Request high accuracy (uses GPS on mobile, better accuracy on web)
-      timeout: 15000, // 15 seconds timeout - increased for Android overlay delays
+      timeout: 12000, // 12 seconds timeout
       maximumAge: 0, // Don't use cached location, always get fresh
     };
 
@@ -108,7 +110,7 @@ export default function ChatPage() {
       });
       setLocationStatus("active");
       console.log(
-        `📍 Location updated: ${position.coords.latitude.toFixed(
+        `✅ Location updated: ${position.coords.latitude.toFixed(
           4
         )}, ${position.coords.longitude.toFixed(
           4
@@ -118,7 +120,7 @@ export default function ChatPage() {
 
     // Error callback with fallback options and retry logic
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 2;
 
     const onError = (error: GeolocationPositionError) => {
       console.log("❌ Geolocation error:", error.message, "Code:", error.code);
@@ -127,58 +129,65 @@ export default function ChatPage() {
       switch (error.code) {
         case error.PERMISSION_DENIED:
           console.log(
-            "❌ PERMISSION_DENIED: Please close any overlays and enable location access in Chrome settings."
+            "❌ PERMISSION_DENIED: User denied location access or permission dialog didn't show."
           );
-          console.log(
-            "   1. Close any floating apps (screen recorders, chat heads, accessibility overlays)"
-          );
-          console.log(
-            "   2. Go to Chrome Settings > Privacy > Location > Allow"
-          );
-          console.log("   3. Refresh the page and try again");
+          console.log("SOLUTION:");
+          console.log("  1. Go to Chrome Settings (⋮ menu)");
+          console.log("  2. Tap Settings > Privacy and security > Site settings");
+          console.log("  3. Find this website and set Location to 'Allow'");
+          console.log("  4. Close Chrome completely and reopen this page");
+          console.log("  5. Tap 'Allow' when the permission dialog appears");
           setLocationStatus("denied");
           break;
 
         case error.POSITION_UNAVAILABLE:
           console.log(
-            "⚠️ POSITION_UNAVAILABLE: GPS signal lost or unavailable."
+            "⚠️ POSITION_UNAVAILABLE: GPS signal not found or WiFi not available."
+          );
+          console.log("SOLUTION:");
+          console.log(
+            "  - Move outdoors away from buildings"
           );
           console.log(
-            "   Try: Moving outdoors, enabling GPS, or enabling WiFi"
+            "  - Enable WiFi for faster location (even without using WiFi)"
           );
+          console.log("  - Wait 30 seconds for GPS to acquire signal");
 
           // Retry for position unavailable
           if (retryCount < maxRetries) {
             retryCount++;
-            console.log(`   Retrying... (${retryCount}/${maxRetries})`);
-            setTimeout(() => getUserLocation(), 3000);
+            console.log(`   Retrying in 5 seconds... (${retryCount}/${maxRetries})`);
+            setTimeout(() => getUserLocation(), 5000);
           } else {
             setLocationStatus("denied");
+            console.log("❌ GPS signal still unavailable after retries.");
           }
           break;
 
         case error.TIMEOUT:
           console.log(
-            "⏱️ TIMEOUT: Location request took too long. Close overlays and try again."
+            "⏱️ TIMEOUT: Location request took too long (>12s)."
           );
-          console.log("   Common causes:");
+          console.log("CAUSES:");
           console.log(
-            "   - Floating app overlays (YouTube, Facebook, screen recorder)"
+            "  - GPS hasn't acquired signal yet (needs 20-40 seconds outdoors)"
           );
-          console.log("   - Chrome is blocked by accessibility features");
-          console.log("   - Poor GPS/network signal");
+          console.log(
+            "  - Chrome permission dialog was blocked by overlays"
+          );
+          console.log("  - Poor network/GPS signal");
 
           // Retry for timeout
           if (retryCount < maxRetries) {
             retryCount++;
             console.log(
-              `   Retrying in 4 seconds... (${retryCount}/${maxRetries})`
+              `   Retrying in 6 seconds... (${retryCount}/${maxRetries})`
             );
-            setTimeout(() => getUserLocation(), 4000);
+            setTimeout(() => getUserLocation(), 6000);
           } else {
             setLocationStatus("denied");
             console.log(
-              "❌ Max retries reached. Please enable location access."
+              "❌ Max retries reached. GPS may not be working."
             );
           }
           break;
@@ -189,16 +198,24 @@ export default function ChatPage() {
       }
     };
 
-    // Start continuous GPS tracking using watchPosition (works for both mobile and web)
-    // watchPosition keeps updating as the user moves
-    gpsWatchId.current = navigator.geolocation.watchPosition(
-      onSuccess,
+    // First, try getCurrentPosition to get permission dialog
+    // This shows a clearer permission prompt on Android
+    console.log("📍 Requesting initial position (shows permission dialog)...");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log("✅ Initial position obtained, starting continuous tracking...");
+        onSuccess(position);
+        
+        // Now start continuous tracking
+        gpsWatchId.current = navigator.geolocation.watchPosition(
+          onSuccess,
+          onError,
+          geoOptions
+        );
+        console.log("📡 Continuous GPS tracking started");
+      },
       onError,
       geoOptions
-    );
-
-    console.log(
-      "📡 GPS tracking started (supports mobile GPS and web geolocation)"
     );
   };
 
@@ -573,6 +590,63 @@ export default function ChatPage() {
               onExit={handleExit}
               locationStatus={locationStatus}
             />
+            
+            {/* Retry Location Button - Show when stuck on "requesting" */}
+            {locationStatus === "requesting" && (
+              <Box
+                style={{
+                  background: isDark ? theme.colors.yellow[9] : theme.colors.yellow[0],
+                  padding: `${rem(8)} ${rem(16)}`,
+                  textAlign: "center",
+                  borderBottom: `1px solid ${colors.border}`,
+                  display: "flex",
+                  gap: rem(8),
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <MantineText size="sm" fw={500} c={isDark ? "white" : "dark"}>
+                  ⏳ Requesting location...
+                </MantineText>
+                <Button
+                  size="xs"
+                  variant="filled"
+                  color="orange"
+                  onClick={getUserLocation}
+                >
+                  Retry
+                </Button>
+              </Box>
+            )}
+            
+            {/* Error Message - Show when permission denied */}
+            {locationStatus === "denied" && (
+              <Box
+                style={{
+                  background: isDark ? theme.colors.red[9] : theme.colors.red[0],
+                  padding: `${rem(8)} ${rem(16)}`,
+                  textAlign: "center",
+                  borderBottom: `1px solid ${colors.border}`,
+                  display: "flex",
+                  gap: rem(8),
+                  justifyContent: "center",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <MantineText size="sm" fw={500} c={isDark ? "white" : "dark"}>
+                  ❌ Location access denied
+                </MantineText>
+                <Button
+                  size="xs"
+                  variant="filled"
+                  color="red"
+                  onClick={getUserLocation}
+                >
+                  Enable
+                </Button>
+              </Box>
+            )}
             {/* Video Call UI */}
             {/* <Box style={{ margin: "16px 0" }}>
               <VideoCall signalingSocket={socket} userId={userId} />
