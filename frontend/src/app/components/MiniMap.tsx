@@ -10,7 +10,7 @@ import {
   Button,
   Tooltip,
 } from "@mantine/core";
-import { Map2, Satellite, Mountain } from "tabler-icons-react";
+import { Map2, Satellite, Mountain, Refresh } from "tabler-icons-react";
 
 interface LocationPoint {
   name: string;
@@ -55,24 +55,15 @@ const MiniMap: React.FC<MiniMapProps> = ({
     "street"
   );
   const [isClient, setIsClient] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Get unique locations from messages
+  // Get unique locations from messages (EXCLUDING current user)
   const getUniqueLocations = (): LocationPoint[] => {
     const locationsMap = new Map<string, LocationPoint>();
 
-    // Add current user location
-    if (userLocation) {
-      locationsMap.set(userId, {
-        name: userName,
-        lat: userLocation.lat,
-        lng: userLocation.lng,
-        userId: userId,
-      });
-    }
-
-    // Add locations from messages
+    // Add locations from messages (excluding current user)
     messages.forEach((msg) => {
-      if (msg.lat && msg.lng && !locationsMap.has(msg.userId)) {
+      if (msg.lat && msg.lng && msg.userId !== userId && !locationsMap.has(msg.userId)) {
         locationsMap.set(msg.userId, {
           name: msg.name,
           lat: msg.lat,
@@ -170,6 +161,23 @@ const MiniMap: React.FC<MiniMapProps> = ({
     setMapStyle(style);
   };
 
+  // Get unique locations early so it can be used in refresh handler
+  const locations = getUniqueLocations();
+
+  // Refresh location data - re-center map on all locations
+  const handleRefreshLocations = () => {
+    setIsRefreshing(true);
+    const L = require("leaflet");
+    
+    if (map.current && locations.length > 0) {
+      const bounds = L.latLngBounds(locations.map((l) => [l.lat, l.lng]));
+      map.current.fitBounds(bounds, { padding: [50, 50] });
+    }
+    
+    // Simulate refresh animation
+    setTimeout(() => setIsRefreshing(false), 600);
+  };
+
   // Initialize map and handle marker updates
   useEffect(() => {
     if (!isClient || !mapContainer.current) return;
@@ -217,8 +225,6 @@ const MiniMap: React.FC<MiniMapProps> = ({
 
     // Add or update markers
     locations.forEach((location) => {
-      const isCurrentUser = location.userId === userId;
-
       if (markers.current[location.userId]) {
         // Update existing marker position
         markers.current[location.userId].setLatLng([
@@ -226,15 +232,13 @@ const MiniMap: React.FC<MiniMapProps> = ({
           location.lng,
         ]);
       } else {
-        // Create new marker
+        // Create new marker for other users
         const marker = L.marker([location.lat, location.lng], {
-          icon: createMarkerIcon(location.name, isCurrentUser),
+          icon: createMarkerIcon(location.name, false),
         })
           .bindPopup(
             `<div style="text-align: center; font-family: Arial;">
-              <strong>${location.name}${
-              isCurrentUser ? " (You)" : ""
-            }</strong><br/>
+              <strong>${location.name}</strong><br/>
               ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}
             </div>`,
             { maxWidth: 200 }
@@ -256,8 +260,6 @@ const MiniMap: React.FC<MiniMapProps> = ({
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const locations = getUniqueLocations();
 
   return (
     <Box
@@ -313,6 +315,17 @@ const MiniMap: React.FC<MiniMapProps> = ({
               <Mountain size={16} />
             </Button>
           </Tooltip>
+          <Tooltip label="Refresh Location" withArrow>
+            <Button
+              size="xs"
+              variant="light"
+              onClick={handleRefreshLocations}
+              loading={isRefreshing}
+              style={{ flex: 1 }}
+            >
+              <Refresh size={16} />
+            </Button>
+          </Tooltip>
         </Box>
       )}
 
@@ -356,10 +369,6 @@ const MiniMap: React.FC<MiniMapProps> = ({
                     background: getRandomColor(location.name),
                     color: "white",
                     fontWeight: 600,
-                    border:
-                      location.userId === userId
-                        ? `2px solid ${theme.colors.indigo[4]}`
-                        : "none",
                   }}
                 >
                   {getUserInitials(location.name)}
@@ -375,7 +384,6 @@ const MiniMap: React.FC<MiniMapProps> = ({
                     }}
                   >
                     {location.name}
-                    {location.userId === userId && " (You)"}
                   </MantineText>
                   <MantineText
                     size="xs"

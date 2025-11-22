@@ -94,9 +94,9 @@ export default function ChatPage() {
     setLocationStatus("requesting");
 
     // High accuracy options - works for both mobile GPS and web-based geolocation
-    const geoOptions = {
+    const geoOptions: PositionOptions = {
       enableHighAccuracy: true, // Request high accuracy (uses GPS on mobile, better accuracy on web)
-      timeout: 10000, // 10 seconds timeout
+      timeout: 15000, // 15 seconds timeout - increased for Android overlay delays
       maximumAge: 0, // Don't use cached location, always get fresh
     };
 
@@ -108,7 +108,7 @@ export default function ChatPage() {
       });
       setLocationStatus("active");
       console.log(
-        `Location updated: ${position.coords.latitude.toFixed(
+        `📍 Location updated: ${position.coords.latitude.toFixed(
           4
         )}, ${position.coords.longitude.toFixed(
           4
@@ -116,32 +116,81 @@ export default function ChatPage() {
       );
     };
 
-    // Error callback with fallback options
+    // Error callback with fallback options and retry logic
+    let retryCount = 0;
+    const maxRetries = 3;
+
     const onError = (error: GeolocationPositionError) => {
-      console.log("Geolocation error:", error.message);
-      setLocationStatus("denied");
+      console.log("❌ Geolocation error:", error.message, "Code:", error.code);
 
       // Provide helpful feedback based on error type
       switch (error.code) {
         case error.PERMISSION_DENIED:
           console.log(
-            "GPS permission denied. Please enable location services."
+            "❌ PERMISSION_DENIED: Please close any overlays and enable location access in Chrome settings."
           );
+          console.log(
+            "   1. Close any floating apps (screen recorders, chat heads, accessibility overlays)"
+          );
+          console.log(
+            "   2. Go to Chrome Settings > Privacy > Location > Allow"
+          );
+          console.log("   3. Refresh the page and try again");
+          setLocationStatus("denied");
           break;
+
         case error.POSITION_UNAVAILABLE:
           console.log(
-            "GPS position unavailable. Try enabling GPS or moving outdoors."
+            "⚠️ POSITION_UNAVAILABLE: GPS signal lost or unavailable."
           );
+          console.log(
+            "   Try: Moving outdoors, enabling GPS, or enabling WiFi"
+          );
+
+          // Retry for position unavailable
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`   Retrying... (${retryCount}/${maxRetries})`);
+            setTimeout(() => getUserLocation(), 3000);
+          } else {
+            setLocationStatus("denied");
+          }
           break;
+
         case error.TIMEOUT:
-          console.log("GPS request timeout. Retrying...");
-          // Retry after a delay
-          setTimeout(() => getUserLocation(), 3000);
+          console.log(
+            "⏱️ TIMEOUT: Location request took too long. Close overlays and try again."
+          );
+          console.log("   Common causes:");
+          console.log(
+            "   - Floating app overlays (YouTube, Facebook, screen recorder)"
+          );
+          console.log("   - Chrome is blocked by accessibility features");
+          console.log("   - Poor GPS/network signal");
+
+          // Retry for timeout
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(
+              `   Retrying in 4 seconds... (${retryCount}/${maxRetries})`
+            );
+            setTimeout(() => getUserLocation(), 4000);
+          } else {
+            setLocationStatus("denied");
+            console.log(
+              "❌ Max retries reached. Please enable location access."
+            );
+          }
           break;
+
+        default:
+          console.log("❓ Unknown geolocation error:", error);
+          setLocationStatus("denied");
       }
     };
 
     // Start continuous GPS tracking using watchPosition (works for both mobile and web)
+    // watchPosition keeps updating as the user moves
     gpsWatchId.current = navigator.geolocation.watchPosition(
       onSuccess,
       onError,
@@ -149,7 +198,7 @@ export default function ChatPage() {
     );
 
     console.log(
-      "GPS tracking started (supports mobile GPS and web geolocation)"
+      "📡 GPS tracking started (supports mobile GPS and web geolocation)"
     );
   };
 
@@ -522,6 +571,7 @@ export default function ChatPage() {
               toggleColorScheme={toggleColorScheme}
               name={name}
               onExit={handleExit}
+              locationStatus={locationStatus}
             />
             {/* Video Call UI */}
             {/* <Box style={{ margin: "16px 0" }}>

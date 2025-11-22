@@ -31,6 +31,7 @@ interface ChatHeaderProps {
   toggleColorScheme: () => void;
   name?: string;
   onExit?: () => void;
+  locationStatus?: "idle" | "requesting" | "active" | "denied";
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -44,6 +45,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   toggleColorScheme,
   name,
   onExit,
+  locationStatus,
 }) => {
   const headerTextColor = theme.white;
 
@@ -164,6 +166,42 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Badge variant="filled" color="yellow" size="md" radius="xl">
             {typing} is typing...
           </Badge>
+        )}
+
+        {/* Location Tracking Status */}
+        {locationStatus && (
+          <Tooltip
+            label={
+              locationStatus === "denied"
+                ? "Location access denied. Tap to enable in Chrome settings"
+                : locationStatus === "requesting"
+                ? "Requesting location access (close any overlays)"
+                : locationStatus === "active"
+                ? "Location tracking active"
+                : "Location tracking disabled"
+            }
+            withArrow
+          >
+            <Badge
+              variant="filled"
+              color={
+                locationStatus === "active"
+                  ? "cyan"
+                  : locationStatus === "requesting"
+                  ? "yellow"
+                  : locationStatus === "denied"
+                  ? "red"
+                  : "gray"
+              }
+              size="md"
+              radius="xl"
+            >
+              {locationStatus === "active" && "📍 Tracking"}
+              {locationStatus === "requesting" && "⏳ Requesting"}
+              {locationStatus === "denied" && "❌ No Location"}
+              {locationStatus === "idle" && "⏸️ Idle"}
+            </Badge>
+          </Tooltip>
         )}
       </Group>
     </Box>
