@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import L from "leaflet";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   Box,
   Text as MantineText,
@@ -49,12 +48,13 @@ const MiniMap: React.FC<MiniMapProps> = ({
   getUserInitials,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<L.Map | null>(null);
-  const markers = useRef<{ [key: string]: L.Marker }>({});
-  const tileLayer = useRef<L.TileLayer | null>(null);
+  const map = useRef<any | null>(null);
+  const markers = useRef<{ [key: string]: any }>({});
+  const tileLayer = useRef<any | null>(null);
   const [mapStyle, setMapStyle] = useState<"street" | "satellite" | "terrain">(
     "street"
   );
+  const [isClient, setIsClient] = useState(false);
 
   // Get unique locations from messages
   const getUniqueLocations = (): LocationPoint[] => {
@@ -87,6 +87,9 @@ const MiniMap: React.FC<MiniMapProps> = ({
 
   // Create custom marker icon with user initials and color
   const createMarkerIcon = (name: string, isCurrentUser: boolean = false) => {
+    if (!isClient) return null;
+
+    const L = require("leaflet");
     const initials = getUserInitials(name);
     const color = getRandomColor(name).replace("#", "");
     const borderColor = isCurrentUser ? "3498db" : color;
@@ -118,14 +121,16 @@ const MiniMap: React.FC<MiniMapProps> = ({
 
   // Change map tile layer
   const changeMapStyle = (style: "street" | "satellite" | "terrain") => {
-    if (!map.current) return;
+    if (!map.current || !isClient) return;
+
+    const L = require("leaflet");
 
     // Remove old layer
     if (tileLayer.current) {
       map.current.removeLayer(tileLayer.current);
     }
 
-    let newLayer: L.TileLayer;
+    let newLayer: any;
 
     switch (style) {
       case "satellite":
@@ -165,8 +170,11 @@ const MiniMap: React.FC<MiniMapProps> = ({
     setMapStyle(style);
   };
 
+  // Initialize map and handle marker updates
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!isClient || !mapContainer.current) return;
+
+    const L = require("leaflet");
 
     // Initialize map only once
     if (!map.current) {
@@ -180,6 +188,17 @@ const MiniMap: React.FC<MiniMapProps> = ({
           maxZoom: 19,
         }
       ).addTo(map.current);
+
+      // Fix Leaflet default icon issue
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+        iconUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      });
     }
 
     const locations = getUniqueLocations();
@@ -191,7 +210,7 @@ const MiniMap: React.FC<MiniMapProps> = ({
     // Remove old markers
     currentMarkerIds.forEach((id) => {
       if (!newMarkerIds.has(id)) {
-        map.current!.removeLayer(markers.current[id]);
+        map.current.removeLayer(markers.current[id]);
         delete markers.current[id];
       }
     });
@@ -220,7 +239,7 @@ const MiniMap: React.FC<MiniMapProps> = ({
             </div>`,
             { maxWidth: 200 }
           )
-          .addTo(map.current!);
+          .addTo(map.current);
 
         markers.current[location.userId] = marker;
       }
@@ -229,21 +248,13 @@ const MiniMap: React.FC<MiniMapProps> = ({
     // Fit all markers in view if there are any
     if (locations.length > 0) {
       const bounds = L.latLngBounds(locations.map((l) => [l.lat, l.lng]));
-      map.current!.fitBounds(bounds, { padding: [50, 50] });
+      map.current.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [userLocation, messages, userId, userName]);
+  }, [userLocation, messages, userId, userName, isClient]);
 
-  // Fix Leaflet default icon issue
+  // Set client flag on mount
   useEffect(() => {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl:
-        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-      iconUrl:
-        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-      shadowUrl:
-        "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-    });
+    setIsClient(true);
   }, []);
 
   const locations = getUniqueLocations();
@@ -261,47 +272,49 @@ const MiniMap: React.FC<MiniMapProps> = ({
       }}
     >
       {/* Map Style Controls */}
-      <Box
-        style={{
-          padding: 8,
-          borderBottom: `1px solid ${colors.border}`,
-          display: "flex",
-          gap: 6,
-          background: colors.surface,
-          justifyContent: "center",
-        }}
-      >
-        <Tooltip label="Street View" withArrow>
-          <Button
-            size="xs"
-            variant={mapStyle === "street" ? "filled" : "light"}
-            onClick={() => changeMapStyle("street")}
-            style={{ flex: 1 }}
-          >
-            <Map2 size={16} />
-          </Button>
-        </Tooltip>
-        <Tooltip label="Satellite View" withArrow>
-          <Button
-            size="xs"
-            variant={mapStyle === "satellite" ? "filled" : "light"}
-            onClick={() => changeMapStyle("satellite")}
-            style={{ flex: 1 }}
-          >
-            <Satellite size={16} />
-          </Button>
-        </Tooltip>
-        <Tooltip label="Terrain View" withArrow>
-          <Button
-            size="xs"
-            variant={mapStyle === "terrain" ? "filled" : "light"}
-            onClick={() => changeMapStyle("terrain")}
-            style={{ flex: 1 }}
-          >
-            <Mountain size={16} />
-          </Button>
-        </Tooltip>
-      </Box>
+      {isClient && (
+        <Box
+          style={{
+            padding: 8,
+            borderBottom: `1px solid ${colors.border}`,
+            display: "flex",
+            gap: 6,
+            background: colors.surface,
+            justifyContent: "center",
+          }}
+        >
+          <Tooltip label="Street View" withArrow>
+            <Button
+              size="xs"
+              variant={mapStyle === "street" ? "filled" : "light"}
+              onClick={() => changeMapStyle("street")}
+              style={{ flex: 1 }}
+            >
+              <Map2 size={16} />
+            </Button>
+          </Tooltip>
+          <Tooltip label="Satellite View" withArrow>
+            <Button
+              size="xs"
+              variant={mapStyle === "satellite" ? "filled" : "light"}
+              onClick={() => changeMapStyle("satellite")}
+              style={{ flex: 1 }}
+            >
+              <Satellite size={16} />
+            </Button>
+          </Tooltip>
+          <Tooltip label="Terrain View" withArrow>
+            <Button
+              size="xs"
+              variant={mapStyle === "terrain" ? "filled" : "light"}
+              onClick={() => changeMapStyle("terrain")}
+              style={{ flex: 1 }}
+            >
+              <Mountain size={16} />
+            </Button>
+          </Tooltip>
+        </Box>
+      )}
 
       {/* Map Container */}
       <Box

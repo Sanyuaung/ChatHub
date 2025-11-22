@@ -58,6 +58,10 @@ export default function ChatPage() {
     lat: number;
     lng: number;
   } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "requesting" | "active" | "denied"
+  >("idle");
+  const gpsWatchId = useRef<number | null>(null);
   const feedbackTimeout = useRef<NodeJS.Timeout | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
@@ -79,20 +83,83 @@ export default function ChatPage() {
     otherBubble: isDark ? theme.colors.dark[6] : "#f1f5f9",
   };
 
-  // Get user's geolocation
+  // Get user's geolocation with continuous tracking
   const getUserLocation = () => {
-    if (typeof window !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.log("Geolocation error:", error);
-        }
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      console.log("Geolocation not available");
+      setLocationStatus("denied");
+      return;
+    }
+
+    setLocationStatus("requesting");
+
+    // High accuracy options - works for both mobile GPS and web-based geolocation
+    const geoOptions = {
+      enableHighAccuracy: true, // Request high accuracy (uses GPS on mobile, better accuracy on web)
+      timeout: 10000, // 10 seconds timeout
+      maximumAge: 0, // Don't use cached location, always get fresh
+    };
+
+    // Success callback - handles both mobile GPS and web geolocation
+    const onSuccess = (position: GeolocationPosition) => {
+      setUserLocation({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+      setLocationStatus("active");
+      console.log(
+        `Location updated: ${position.coords.latitude.toFixed(
+          4
+        )}, ${position.coords.longitude.toFixed(
+          4
+        )} (Accuracy: ${position.coords.accuracy.toFixed(0)}m)`
       );
+    };
+
+    // Error callback with fallback options
+    const onError = (error: GeolocationPositionError) => {
+      console.log("Geolocation error:", error.message);
+      setLocationStatus("denied");
+
+      // Provide helpful feedback based on error type
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          console.log(
+            "GPS permission denied. Please enable location services."
+          );
+          break;
+        case error.POSITION_UNAVAILABLE:
+          console.log(
+            "GPS position unavailable. Try enabling GPS or moving outdoors."
+          );
+          break;
+        case error.TIMEOUT:
+          console.log("GPS request timeout. Retrying...");
+          // Retry after a delay
+          setTimeout(() => getUserLocation(), 3000);
+          break;
+      }
+    };
+
+    // Start continuous GPS tracking using watchPosition (works for both mobile and web)
+    gpsWatchId.current = navigator.geolocation.watchPosition(
+      onSuccess,
+      onError,
+      geoOptions
+    );
+
+    console.log(
+      "GPS tracking started (supports mobile GPS and web geolocation)"
+    );
+  };
+
+  // Stop GPS tracking when component unmounts
+  const stopLocationTracking = () => {
+    if (gpsWatchId.current !== null) {
+      navigator.geolocation.clearWatch(gpsWatchId.current);
+      gpsWatchId.current = null;
+      setLocationStatus("idle");
+      console.log("GPS tracking stopped");
     }
   };
 
@@ -251,6 +318,8 @@ export default function ChatPage() {
       if (socket.connected) {
         socket.disconnect();
       }
+      // Stop GPS tracking when leaving chat
+      stopLocationTracking();
     };
   }, [userId]);
 
