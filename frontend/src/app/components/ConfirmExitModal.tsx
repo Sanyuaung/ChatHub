@@ -18,6 +18,7 @@ const ConfirmExitModal: React.FC<ConfirmExitModalProps> = ({
     withCloseButton={false}
     centered
     title="Leave Chat?"
+    zIndex={1000}
   >
     <Text mb="md">Are you sure you want to leave the chat?</Text>
     <Group justify="flex-end">
