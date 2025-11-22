@@ -16,6 +16,8 @@ interface Message {
   id: string;
   timestamp: Date;
   userId: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface MessagesListProps {
@@ -146,6 +148,20 @@ const MessagesList: React.FC<MessagesListProps> = ({
                   </MantineText>
                 )}
               </Paper>
+              {msg.lat && msg.lng && (
+                <MantineText
+                  size="xs"
+                  style={{
+                    color: colors.textSecondary,
+                    marginTop: 4,
+                    paddingLeft: 8,
+                    paddingRight: 8,
+                    fontStyle: "italic",
+                  }}
+                >
+                  📍 {msg.lat.toFixed(4)}, {msg.lng.toFixed(4)}
+                </MantineText>
+              )}
               <MantineText
                 size="xs"
                 style={{

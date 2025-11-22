@@ -17,7 +17,11 @@ io.on("connection", (socket) => {
   io.sockets.emit("users", io.engine.clientsCount);
 
   socket.on("chat", (data) => {
-    io.sockets.emit("chat", data);
+    io.sockets.emit("chat", {
+      ...data,
+      lat: data.lat,
+      lng: data.lng,
+    });
   });
   socket.on("typing", (name) => {
     socket.broadcast.emit("typing", name);

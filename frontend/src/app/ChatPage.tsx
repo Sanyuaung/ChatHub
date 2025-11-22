@@ -24,6 +24,7 @@ import {
   showWelcomeNotification,
 } from "./components/logoutNotification";
 import { useRefreshWarning } from "./components/useRefreshWarning";
+import MiniMap from "./components/MiniMap";
 
 // Move socket connection inside component to avoid SSR issues
 let socket: any;
@@ -45,12 +46,18 @@ export default function ChatPage() {
       id: string;
       timestamp: Date;
       userId: string;
+      lat?: number;
+      lng?: number;
     }[]
   >([]);
   const [typing, setTyping] = useState("");
   const [onlineUsers, setOnlineUsers] = useState(1);
   const [isConnected, setIsConnected] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const feedbackTimeout = useRef<NodeJS.Timeout | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
@@ -72,6 +79,23 @@ export default function ChatPage() {
     otherBubble: isDark ? theme.colors.dark[6] : "#f1f5f9",
   };
 
+  // Get user's geolocation
+  const getUserLocation = () => {
+    if (typeof window !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log("Geolocation error:", error);
+        }
+      );
+    }
+  };
+
   // Send image as base64 string
   const sendImage = (base64: string) => {
     if (!name.trim() || !userId) return;
@@ -83,6 +107,7 @@ export default function ChatPage() {
       id: typeof window !== "undefined" ? Date.now().toString() : "",
       userId: userId,
       timestamp: typeof window !== "undefined" ? new Date().toISOString() : "",
+      ...(userLocation && { lat: userLocation.lat, lng: userLocation.lng }),
     };
     socket.emit("chat", messageData);
   };
@@ -107,6 +132,8 @@ export default function ChatPage() {
       userIdRef.current = newUserId;
       sessionStorage.setItem("chat-user-id", newUserId);
     }
+    // Get user's geolocation on mount
+    getUserLocation();
   }, []);
 
   // Handler for name modal submit
@@ -180,6 +207,8 @@ export default function ChatPage() {
         id: string;
         userId: string;
         timestamp: string;
+        lat?: number;
+        lng?: number;
       }) => {
         setMessages((prev) => [
           ...prev,
@@ -249,6 +278,7 @@ export default function ChatPage() {
       id: typeof window !== "undefined" ? Date.now().toString() : "",
       userId: userId,
       timestamp: typeof window !== "undefined" ? new Date().toISOString() : "",
+      ...(userLocation && { lat: userLocation.lat, lng: userLocation.lng }),
     };
     socket.emit("chat", messageData);
   };
@@ -386,90 +416,121 @@ export default function ChatPage() {
         fontFamily: "Inter, sans-serif",
       }}
     >
-      <Container size={480} p={0} style={{ width: "100%", maxWidth: 480 }}>
-        <Paper
-          shadow="xl"
-          radius={24}
-          p={0}
-          withBorder
-          style={{
-            background: colors.surface,
-            color: colors.text,
-            overflow: "hidden",
-            border: `1px solid ${colors.border}`,
-            height: "600px",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <ChatHeader
-            isConnected={isConnected}
-            onlineUsers={onlineUsers}
-            userId={userId}
-            isDark={isDark}
-            colors={colors}
-            theme={theme}
-            typing={typing}
-            toggleColorScheme={toggleColorScheme}
-            name={name}
-            onExit={handleExit}
-          />
-          {/* Video Call UI */}
-          {/* <Box style={{ margin: "16px 0" }}>
-            <VideoCall signalingSocket={socket} userId={userId} />
-          </Box> */}
-          <ScrollArea
-            viewportRef={viewport}
-            type="auto"
-            offsetScrollbars
-            style={{
-              background: isDark ? theme.colors.dark[8] : "#f8fafc",
-              flex: 1,
-              padding: rem(16),
-            }}
-          >
-            <MessagesList
-              messages={messages}
-              userId={userId}
-              colors={colors}
-              theme={theme}
-              viewport={viewport as React.RefObject<HTMLDivElement>}
-              isDark={isDark}
-              getUserInitials={getUserInitials}
-              getRandomColor={getRandomColor}
-              formatTime={formatTime}
-            />
-          </ScrollArea>
-          <Box
+      <Box
+        style={{
+          display: "flex",
+          gap: rem(16),
+          width: "100%",
+          maxWidth: "1000px",
+          alignItems: "center",
+        }}
+      >
+        {/* Chat Container */}
+        <Container size={480} p={0} style={{ flex: "0 0 auto", width: 480 }}>
+          <Paper
+            shadow="xl"
+            radius={24}
+            p={0}
+            withBorder
             style={{
               background: colors.surface,
-              padding: rem(20),
-              borderTop: `1px solid ${colors.border}`,
-              flexShrink: 0,
+              color: colors.text,
+              overflow: "hidden",
+              border: `1px solid ${colors.border}`,
+              height: "600px",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <MessageInput
-              name={name}
-              setName={setName}
-              message={message}
-              setMessage={setMessage}
-              sendMessage={sendMessage}
-              sendImage={sendImage}
-              handleTyping={handleTyping}
+            <ChatHeader
+              isConnected={isConnected}
+              onlineUsers={onlineUsers}
+              userId={userId}
               isDark={isDark}
               colors={colors}
               theme={theme}
-              isConnected={isConnected}
-              sending={sending}
+              typing={typing}
+              toggleColorScheme={toggleColorScheme}
+              name={name}
+              onExit={handleExit}
             />
-            <ConfirmExitModal
-              opened={showExitModal}
-              onConfirm={confirmLeaveChat}
-              onCancel={cancelLeaveChat}
-            />
-          </Box>
-        </Paper>
-      </Container>
+            {/* Video Call UI */}
+            {/* <Box style={{ margin: "16px 0" }}>
+              <VideoCall signalingSocket={socket} userId={userId} />
+            </Box> */}
+            <ScrollArea
+              viewportRef={viewport}
+              type="auto"
+              offsetScrollbars
+              style={{
+                background: isDark ? theme.colors.dark[8] : "#f8fafc",
+                flex: 1,
+                padding: rem(16),
+              }}
+            >
+              <MessagesList
+                messages={messages}
+                userId={userId}
+                colors={colors}
+                theme={theme}
+                viewport={viewport as React.RefObject<HTMLDivElement>}
+                isDark={isDark}
+                getUserInitials={getUserInitials}
+                getRandomColor={getRandomColor}
+                formatTime={formatTime}
+              />
+            </ScrollArea>
+            <Box
+              style={{
+                background: colors.surface,
+                padding: rem(20),
+                borderTop: `1px solid ${colors.border}`,
+                flexShrink: 0,
+              }}
+            >
+              <MessageInput
+                name={name}
+                setName={setName}
+                message={message}
+                setMessage={setMessage}
+                sendMessage={sendMessage}
+                sendImage={sendImage}
+                handleTyping={handleTyping}
+                isDark={isDark}
+                colors={colors}
+                theme={theme}
+                isConnected={isConnected}
+                sending={sending}
+              />
+              <ConfirmExitModal
+                opened={showExitModal}
+                onConfirm={confirmLeaveChat}
+                onCancel={cancelLeaveChat}
+              />
+            </Box>
+          </Paper>
+        </Container>
+
+        {/* Mini Map Container */}
+        <Box
+          style={{
+            flex: "0 0 300px",
+            height: "600px",
+          }}
+        >
+          <MiniMap
+            userLocation={userLocation}
+            messages={messages}
+            userName={name}
+            userId={userId}
+            colors={colors}
+            theme={theme}
+            isDark={isDark}
+            getRandomColor={getRandomColor}
+            getUserInitials={getUserInitials}
+          />
+        </Box>
+      </Box>
     </Box>
   );
 }

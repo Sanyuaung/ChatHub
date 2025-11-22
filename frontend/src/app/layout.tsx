@@ -4,7 +4,7 @@ import "./globals.css";
 import ThemeProviderClient from "./ThemeProviderClient";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
-import "@mantine/core/styles.css";
+import "leaflet/dist/leaflet.css";
 
 export const metadata: Metadata = {
   title: "Chat Hub - Real-time Chat Application",
